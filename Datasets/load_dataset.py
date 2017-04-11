@@ -86,7 +86,7 @@ def symbolic_variables_conversion (dataset, variables, new_file, result_director
         half = int(math.ceil(len(data)/2))
         s1 = data[0:half]
         s2 = data[half:len(data)-1]
-        print('Split       ')
+
         np.save(f_handle, s1)
         np.save(f_handle, s2)
 
@@ -99,7 +99,31 @@ def symbolic_variables_conversion (dataset, variables, new_file, result_director
             w = csv.writer(f, delimiter=',')
             for key, val in symbols[index].items():
                 w.writerow([key, val])
-            #np.savetxt(name, symbols[index], delimiter=',')   
+            #np.savetxt(name, symbols[index], delimiter=',')
+
+def simple_preprocessing_KDD():
+    load_variables(SYS_VARS.KDDCup_path_names)
+    """Divide the samples into attacks of type A and rest
+    select_attack('normal.', SYS_VARS.KDDCup_path_train)
+    others = []
+    attack = select_attack(attacks_map.keys()[22], SYS_VARS.KDDCup_path_train, _ATTACK_INDEX_KDD, others)
+    print ('# attacks: ', len(attack))
+    print ('# other flows:',len(others))"""
+
+    """Plot all attacks statistics
+    plot_attacks( SYS_VARS.KDDCup_path_train, _ATTACK_INDEX_KDD)"""
+
+    """Convert ATTACKS symbol to integer
+    symbolic_known_variable_conversion (SYS_VARS.KDDCup_path_train_10, attacks_map, _ATTACK_INDEX_KDD, 'KDD_train_attack_10.npy', SYS_VARS.KDDCup_path_result)"""
+
+    """Convert ALL symbols to integers"""
+    saved_preprocess = 'KDD_train_num_10.npy'
+    #symbolic_variables_conversion (SYS_VARS.KDDCup_path_train_10, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX, _ATTACK_INDEX_KDD], saved_preprocess, SYS_VARS.KDDCup_path_result)
+    #print ('\n SAMPLE numeric')
+    #var = np.load('KDD_train_num.npy')
+    #print(var[0])
+    return np.transpose(np.load(SYS_VARS.KDDCup_path_result+SYS_VARS.separator+saved_preprocess).astype(np.float))
+    
 
                 
 
@@ -161,22 +185,6 @@ def plot_attacks (dataset, a_index):
     plt.show()
 
 
-load_variables(SYS_VARS.KDDCup_path_names)
-#Divide the samples into attacks of type A and rest
-#select_attack('normal.', SYS_VARS.KDDCup_path_train)
-#others = []
-#attack = select_attack(attacks_map.keys()[22], SYS_VARS.KDDCup_path_train, _ATTACK_INDEX_KDD, others)
-#print ('# attacks: ', len(attack))
-#print ('# other flows:',len(others))
 
-#Plot all attacks statistics
-#plot_attacks( SYS_VARS.KDDCup_path_train, _ATTACK_INDEX_KDD)
 
-#Convert ATTACKS symbol to integer
-#symbolic_known_variable_conversion (SYS_VARS.KDDCup_path_train_10, attacks_map, _ATTACK_INDEX_KDD, 'KDD_train_attack_10.npy', SYS_VARS.KDDCup_path_result)
 
-#Convert ALL symbols to integers
-symbolic_variables_conversion (SYS_VARS.KDDCup_path_train, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX, _ATTACK_INDEX_KDD], 'KDD_train_num.npy', SYS_VARS.KDDCup_path_result)
-#print ('\n SAMPLE numeric')
-#var = np.load('KDD_train_num.npy')
-#print(var[0])

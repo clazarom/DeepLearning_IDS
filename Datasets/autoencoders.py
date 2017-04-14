@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Siddharth Agrawal
 # Code written by : Siddharth Agrawal
 # Email ID : siddharth.950@gmail.com
+# Github repo: https://github.com/siddharth-agrawal/Sparse-Autoencoder
 
 import numpy
 import math
@@ -77,7 +78,7 @@ class SparseAutoencoder(object):
         
         """ Compute output layers by performing a feedforward pass
             Computation is done for all the training inputs simultaneously """
-        
+        #output_layer = self.computeOutputLayer(W1, W2, b1, b2, input)
         hidden_layer = self.sigmoid(numpy.dot(W1, input) + b1)
         output_layer = self.sigmoid(numpy.dot(W2, hidden_layer) + b2)
         
@@ -119,7 +120,6 @@ class SparseAutoencoder(object):
         b2_grad = b2_grad / input.shape[1]
         
         """ Transform numpy matrices into arrays """
-        
         W1_grad = numpy.array(W1_grad)
         W2_grad = numpy.array(W2_grad)
         b1_grad = numpy.array(b1_grad)
@@ -130,9 +130,14 @@ class SparseAutoencoder(object):
         theta_grad = numpy.concatenate((W1_grad.flatten(), W2_grad.flatten(),
                                         b1_grad.flatten(), b2_grad.flatten()))
         print ('- Cost: '+ str(cost))
-        print('- Input layer ('+str(input.shape[0])+'x'+str(input.shape[1])+'): '+str(input[10]) )                                
-        print('- Output layer ('+str(output_layer.shape[0])+'x'+str(output_layer.shape[1])+'): '+str(output_layer[10]) )                                
+        # print('- Input layer ('+str(input.shape[0])+'x'+str(input.shape[1])+'): '+str(input[10]) )                                
+        # print('- Output layer ('+str(output_layer.shape[0])+'x'+str(output_layer.shape[1])+'): '+str(output_layer[10]) )                                
         return [cost, theta_grad]
+
+    ###########################################################################################
+    def computeOutputLayer(self, W1, W2, b1, b2, input):
+        hidden_layer = self.sigmoid(numpy.dot(W1, input) + b1)
+        output_layer = self.sigmoid(numpy.dot(W2, hidden_layer) + b2)
 
 ###########################################################################################
 """ Normalize the dataset provided as input """
@@ -198,7 +203,8 @@ def executeSparseAutoencoder():
     """ Define the parameters of the Autoencoder """
     #vis_patch_side = 8      # side length of sampled image patches
     #hid_patch_side = 5      # side length of representative image patches
-    rho            = 0.01   # desired average activation of hidden units
+    
+    rho            = 0.01   # desired average activation of hidden units... should be tuned!!
     lamda          = 0.0001 # weight decay parameter
     beta           = 3      # weight of sparsity penalty term
     #num_patches    = 10000  # number of training examples
@@ -207,7 +213,6 @@ def executeSparseAutoencoder():
     #visible_size = vis_patch_side * vis_patch_side  # number of input units
     #hidden_size  = hid_patch_side * hid_patch_side  # number of hidden units
     visible_size = 42
-    output_classes = 5
     #Sparse-autoencoder benefits from larger hidden layer units
     hidden_size = 50
     
@@ -218,7 +223,6 @@ def executeSparseAutoencoder():
     training_data = normalizeDataset(kdd.simple_preprocessing_KDD())
     
     """ Initialize the Autoencoder with the above parameters """
-    
     encoder = SparseAutoencoder(visible_size, hidden_size, rho, lamda, beta)
     
     """ Run the L-BFGS algorithm to get the optimal parameter values """
@@ -231,11 +235,14 @@ def executeSparseAutoencoder():
     #theta = (W1_grad.flatten(), W2_grad.flatten(), b1_grad.flatten(), b2_grad.flatten())
     opt_theta     = opt_solution.x
     opt_W1        = opt_theta[encoder.limit0 : encoder.limit1].reshape(hidden_size, visible_size)
-    opt_X        = opt_theta[encoder.limit3 : encoder.limit4]
+    opt_W2        = opt_theta[encoder.limit1 : encoder.limit2].reshape(visible_size, hidden_size)
+    opt_b1        = opt_theta[encoder.limit2 : encoder.limit3].reshape(hidden_size, 1)
+    opt_b2        = opt_theta[encoder.limit3 : encoder.limit4].reshape(visible_size, 1)
 
-    #opt_W1        = opt_theta[encoder.limit0 : encoder.limit1]
-
-    """ Visualize the obtained optimal W1 weights """
+    """ Compute one data sample: input vs output """
+    print("Input value")
+    print (training_data[1:, 5].shape())
+    output = encoder.computeOutputLayer(opt_W1, opt_W2, opt_b1, opt_b2, training_data[1:, 5])
     
     """visualizeW1(opt_W1, vis_patch_side, hid_patch_side)"""
     print('\n SOLUTION:  ' )

@@ -136,8 +136,10 @@ class SparseAutoencoder(object):
 
     ###########################################################################################
     def computeOutputLayer(self, W1, W2, b1, b2, input):
-        hidden_layer = self.sigmoid(numpy.dot(W1, input) + b1)
-        output_layer = self.sigmoid(numpy.dot(W2, hidden_layer) + b2)
+        hidden_layer = self.sigmoid(numpy.dot(W1, input)+b1)
+        #hidden_layer =  b1
+        output_layer = self.sigmoid(numpy.dot(W2, hidden_layer)+b2)
+        return output_layer
 
 ###########################################################################################
 """ Normalize the dataset provided as input """
@@ -240,14 +242,13 @@ def executeSparseAutoencoder():
     opt_b2        = opt_theta[encoder.limit3 : encoder.limit4].reshape(visible_size, 1)
 
     """ Compute one data sample: input vs output """
-    print("Input value")
-    print (training_data[1:, 5].shape())
-    output = encoder.computeOutputLayer(opt_W1, opt_W2, opt_b1, opt_b2, training_data[1:, 5])
+    print("\nInput value " +str(opt_b1.shape[0])+" " + str(opt_b1.shape[1]))
+    print (training_data[:, 5])
+    opt_X = encoder.computeOutputLayer(opt_W1, opt_W2, opt_b1, opt_b2, training_data[:, 5])
     
     """visualizeW1(opt_W1, vis_patch_side, hid_patch_side)"""
-    print('\n SOLUTION:  ' )
-    for val in opt_X:
-        print (val)
+    print('\n Output value  ' )
+    print (opt_X)
 
 
 

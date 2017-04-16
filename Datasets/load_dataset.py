@@ -103,6 +103,7 @@ def symbolic_variables_conversion (dataset, variables, new_file, result_director
 
 def simple_preprocessing_KDD():
     load_variables(SYS_VARS.KDDCup_path_names)
+
     """Divide the samples into attacks of type A and rest
     select_attack('normal.', SYS_VARS.KDDCup_path_train)
     others = []
@@ -118,10 +119,8 @@ def simple_preprocessing_KDD():
 
     """Convert ALL symbols to integers"""
     saved_preprocess = 'KDD_train_num_10.npy'
-    #symbolic_variables_conversion (SYS_VARS.KDDCup_path_train_10, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX, _ATTACK_INDEX_KDD], saved_preprocess, SYS_VARS.KDDCup_path_result)
-    #print ('\n SAMPLE numeric')
-    #var = np.load('KDD_train_num.npy')
-    #print(var[0])
+    #TODO Generate the preprocessed samples
+    symbolic_variables_conversion (SYS_VARS.KDDCup_path_train_10, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX, _ATTACK_INDEX_KDD], saved_preprocess, SYS_VARS.KDDCup_path_result)
     return np.transpose(np.load(SYS_VARS.KDDCup_path_result+SYS_VARS.separator+saved_preprocess).astype(np.float))
     
 

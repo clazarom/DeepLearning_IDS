@@ -78,9 +78,9 @@ class SparseAutoencoder(object):
         
         """ Compute output layers by performing a feedforward pass
             Computation is done for all the training inputs simultaneously """
-        #output_layer = self.computeOutputLayer(W1, W2, b1, b2, input)
-        hidden_layer = self.sigmoid(numpy.dot(W1, input) + b1)
-        output_layer = self.sigmoid(numpy.dot(W2, hidden_layer) + b2)
+        hidden_layer, output_layer = self.computeOutputLayer(W1, W2, b1, b2, input)
+        #hidden_layer = self.sigmoid(numpy.dot(W1, input) + b1)
+        #output_layer = self.sigmoid(numpy.dot(W2, hidden_layer) + b2)
         
         """ Estimate the average activation value of the hidden layers """
         
@@ -129,17 +129,17 @@ class SparseAutoencoder(object):
         
         theta_grad = numpy.concatenate((W1_grad.flatten(), W2_grad.flatten(),
                                         b1_grad.flatten(), b2_grad.flatten()))
-        print ('- Cost: '+ str(cost))
-        # print('- Input layer ('+str(input.shape[0])+'x'+str(input.shape[1])+'): '+str(input[10]) )                                
-        # print('- Output layer ('+str(output_layer.shape[0])+'x'+str(output_layer.shape[1])+'): '+str(output_layer[10]) )                                
+        print ("- Cost: "+ str(cost))                           
         return [cost, theta_grad]
 
     ###########################################################################################
     def computeOutputLayer(self, W1, W2, b1, b2, input):
-        hidden_layer = self.sigmoid(numpy.dot(W1, input)+b1)
-        #hidden_layer =  b1
-        output_layer = self.sigmoid(numpy.dot(W2, hidden_layer)+b2)
-        return output_layer
+        hidden_layer = self.sigmoid(numpy.add(numpy.dot(W1, input),b1))
+        output_layer = self.sigmoid(numpy.add(numpy.dot(W2, hidden_layer),b2))
+        #print ("Input: "+str(input.shape[0]) +" x "+str(input.shape[1]))
+        #print ("Hidden: "+str(hidden_layer.shape[0]) +" x "+str(hidden_layer.shape[1]))
+        #print ("Output: "+str(output_layer.shape[0])+" x " +str(output_layer.shape[1]))
+        return hidden_layer, output_layer
 
 ###########################################################################################
 """ Normalize the dataset provided as input """
@@ -228,7 +228,7 @@ def executeSparseAutoencoder():
     encoder = SparseAutoencoder(visible_size, hidden_size, rho, lamda, beta)
     
     """ Run the L-BFGS algorithm to get the optimal parameter values """
-    print('\n OPTIMIZATION ' +str(training_data.shape[0]) +' x '+str(training_data.shape[1]))
+    print("\n OPTIMIZATION " +str(training_data.shape[0]) +' x '+str(training_data.shape[1]))
     opt_solution  = scipy.optimize.minimize(encoder.sparseAutoencoderCost, encoder.theta, 
                                             args = (training_data,), method = 'L-BFGS-B', 
                                             jac = True, options = {'maxiter': max_iterations, 'disp' : True})
@@ -242,12 +242,14 @@ def executeSparseAutoencoder():
     opt_b2        = opt_theta[encoder.limit3 : encoder.limit4].reshape(visible_size, 1)
 
     """ Compute one data sample: input vs output """
-    print("\nInput value " +str(opt_b1.shape[0])+" " + str(opt_b1.shape[1]))
-    print (training_data[:, 5])
-    opt_X = encoder.computeOutputLayer(opt_W1, opt_W2, opt_b1, opt_b2, training_data[:, 5])
+    print("\nInput value ")
+    x_in = training_data[:,4:5]
+    #x_in= training_data.take([[:,5],[5]])
+    print (x_in)
+    opt_H, opt_X = encoder.computeOutputLayer(opt_W1, opt_W2, opt_b1, opt_b2, x_in)
     
     """visualizeW1(opt_W1, vis_patch_side, hid_patch_side)"""
-    print('\n Output value  ' )
+    print("\nOutput value " )
     print (opt_X)
 
 

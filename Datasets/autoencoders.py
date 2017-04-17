@@ -10,8 +10,7 @@ import time
 import scipy.io
 import scipy.optimize
 import matplotlib.pyplot
-import SYS_VARS
-import load_dataset as kdd
+
 
 ###########################################################################################
 """ The Sparse Autoencoder class """
@@ -24,15 +23,14 @@ class SparseAutoencoder(object):
     def __init__(self, visible_size, hidden_size, rho, lamda, beta):
     
         """ Initialize parameters of the Autoencoder object """
-    
         self.visible_size = visible_size    # number of input units
         self.hidden_size = hidden_size      # number of hidden units
         self.rho = rho                      # desired average activation of hidden units
         self.lamda = lamda                  # weight decay parameter
         self.beta = beta                    # weight of sparsity penalty term
         
+
         """ Set limits for accessing 'theta' values """
-        
         self.limit0 = 0
         self.limit1 = hidden_size * visible_size # W1 size: hidden x visible
         self.limit2 = 2 * hidden_size * visible_size # W2 size: hidden x visible
@@ -141,117 +139,11 @@ class SparseAutoencoder(object):
         #print ("Output: "+str(output_layer.shape[0])+" x " +str(output_layer.shape[1]))
         return hidden_layer, output_layer
 
-###########################################################################################
-""" Normalize the dataset provided as input """
-
-def normalizeDataset(dataset):
-
-    """ Remove mean of dataset """
-    dataset = dataset - numpy.mean(dataset)
-    
-    """ Truncate to +/-3 standard deviations and scale to -1 to 1 """
-    std_dev = 3 * numpy.std(dataset)
-    dataset = numpy.maximum(numpy.minimum(dataset, std_dev), -std_dev) / std_dev
-    
-    """ Rescale from [-1, 1] to [0.1, 0.9] """
-    dataset = (dataset + 1) * 0.4 + 0.1
-    
-    return dataset
-
-###########################################################################################
-""" Randomly samples image patches, normalizes them and returns as dataset """
-
-def loadDataset(num_patches, patch_side):
-
-    """ Load KDD """
-    file_10 = SYS_VARS.KDDCup_path_train_10
-    
-    """ Initialize dataset as array of zeros """
-    dataset = numpy.zeros((patch_side*patch_side, num_patches))
-    
-    """ Normalize and return the dataset """
-    dataset = normalizeDataset(dataset)
-    return dataset
-
-###########################################################################################
-""" Visualizes the obtained optimal W1 values as images """
-
-def visualizeW1(opt_W1, vis_patch_side, hid_patch_side):
-
-    """ Add the weights as a matrix of images """
-    
-    figure, axes = matplotlib.pyplot.subplots(nrows = hid_patch_side,
-                                              ncols = hid_patch_side)
-    index = 0
-                                              
-    for axis in axes.flat:
-    
-        """ Add row of weights as an image to the plot """
-    
-        image = axis.imshow(opt_W1[index, :].reshape(vis_patch_side, vis_patch_side),
-                            cmap = matplotlib.pyplot.cm.gray, interpolation = 'nearest')
-        axis.set_frame_on(False)
-        axis.set_axis_off()
-        index += 1
-        
-    """ Show the obtained plot """  
-    matplotlib.pyplot.show()
-
-###########################################################################################
-""" Loads data, trains the Autoencoder and visualizes the learned weights """
-
-def executeSparseAutoencoder():
-
-    """ Define the parameters of the Autoencoder """
-    #vis_patch_side = 8      # side length of sampled image patches
-    #hid_patch_side = 5      # side length of representative image patches
-    
-    rho            = 0.01   # desired average activation of hidden units... should be tuned!!
-    lamda          = 0.0001 # weight decay parameter
-    beta           = 3      # weight of sparsity penalty term
-    #num_patches    = 10000  # number of training examples
-    max_iterations = 400    # number of optimization iterations
-
-    #visible_size = vis_patch_side * vis_patch_side  # number of input units
-    #hidden_size  = hid_patch_side * hid_patch_side  # number of hidden units
-    visible_size = 42
-    #Sparse-autoencoder benefits from larger hidden layer units
-    hidden_size = 50
-    
-    """ Load randomly sampled image patches as dataset """
-    
-    #training_data = loadDataset(num_patches, vis_patch_side)
-    #print (kdd.simple_preprocessing_KDD().shape())
-    training_data = normalizeDataset(kdd.simple_preprocessing_KDD())
-    
-    """ Initialize the Autoencoder with the above parameters """
-    encoder = SparseAutoencoder(visible_size, hidden_size, rho, lamda, beta)
-    
-    """ Run the L-BFGS algorithm to get the optimal parameter values """
-    print("\n OPTIMIZATION " +str(training_data.shape[0]) +' x '+str(training_data.shape[1]))
-    opt_solution  = scipy.optimize.minimize(encoder.sparseAutoencoderCost, encoder.theta, 
-                                            args = (training_data,), method = 'L-BFGS-B', 
-                                            jac = True, options = {'maxiter': max_iterations, 'disp' : True})
-    if (opt_solution.success):
-        print (opt_solution.message)
-    #theta = (W1_grad.flatten(), W2_grad.flatten(), b1_grad.flatten(), b2_grad.flatten())
-    opt_theta     = opt_solution.x
-    opt_W1        = opt_theta[encoder.limit0 : encoder.limit1].reshape(hidden_size, visible_size)
-    opt_W2        = opt_theta[encoder.limit1 : encoder.limit2].reshape(visible_size, hidden_size)
-    opt_b1        = opt_theta[encoder.limit2 : encoder.limit3].reshape(hidden_size, 1)
-    opt_b2        = opt_theta[encoder.limit3 : encoder.limit4].reshape(visible_size, 1)
-
-    """ Compute one data sample: input vs output """
-    print("\nInput value ")
-    x_in = training_data[:,4:5]
-    #x_in= training_data.take([[:,5],[5]])
-    print (x_in)
-    opt_H, opt_X = encoder.computeOutputLayer(opt_W1, opt_W2, opt_b1, opt_b2, x_in)
-    
-    """visualizeW1(opt_W1, vis_patch_side, hid_patch_side)"""
-    print("\nOutput value " )
-    print (opt_X)
+    ############################################################################################
+    def train(self, training_data, max_iterations, algorithm = 'L-BFGS-B'):
+         """ Run the L-BFGS algorithm to get the optimal parameter values """
+         print("\n OPTIMIZATION " +str(training_data.shape[0]) +' x '+str(training_data.shape[1]))
+         opt_solution  = scipy.optimize.minimize(self.sparseAutoencoderCost, self.theta, args = (training_data,), method = algorithm, jac = True, options = {'maxiter': max_iterations, 'disp' : True})
+         return opt_solution
 
 
-
-executeSparseAutoencoder()

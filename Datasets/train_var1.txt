@@ -1,3 +1,0 @@
-udp,1
-tcp,0
-icmp,2

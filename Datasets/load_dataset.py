@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-
-attacks_map  = {}
+attacks_map  = {} #attacks_map = {attack_name: attack_index, ...}
 feature_names = []
     
 _ATTACK_INDEX_KDD  = -1
@@ -34,6 +33,7 @@ def load_variables (var_names):
                 i += 1
 
         i = 0
+        #Process attacks
         for attack in csvFileArray[_attack_row]:
             attacks_map[attack+'.'] = i
             i += 1
@@ -42,59 +42,81 @@ def load_variables (var_names):
         print(attacks_map )
         print ('\n FEATURES')
         print(feature_names)
+        
+"""Write data into a file_name located in file_directory """
+def write_file (data, file_name, file_directory):
+    variable_file =  file_directory+SYS_VARS.separator+file_name
+    with open(variable_file, 'wb') as f_handle:
+        #w = csv.writer(f_handle, delimiter=',')
+        np.save(f_handle, data)
+        #np.savetxt(name, symbols[index], delimiter=',')
+
+"""Open a a file_name located in file_directory and return its content as numpy darray """
+def read_file(file_name, file_directory):
+    variable_file =  file_directory+SYS_VARS.separator+file_name
+    return np.load(variable_file)
+
 
 ##################### DATA PREPROCESSING #####################
-def symbolic_known_variable_conversion (dataset, symbols, variable_index, new_file, result_directory):
+"""Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
+    When we know the mapping of catogry to number
+"""
+def categorical_known_variable_conversion (dataset, symbols_map, variable_index, new_file, result_directory):
     data= []
     i = []
     save_file = result_directory + SYS_VARS.separator + new_file
-    with open(dataset, 'r') as file:
+    #Open dataset file and modified categorical variable
+    """with open(dataset, 'r') as file:
         reader = csv.reader(file, delimiter = ',')
         for row in reader:
             i = row
-            i [variable_index]= symbols[row[variable_index]]
+            i [variable_index]= symbols_map[row[variable_index]]
+            data.append(i) """
+    file_content = read_file(new_file, result_directory)
+    for row in file_content:
+            i = row
+            i [variable_index]= symbols_map[row[variable_index]]
             data.append(i)
-    with open(save_file, 'wb') as f_handle:
-        half = int(math.ceil(len(data)/2))
-        s1 = data[0:half]
-        s2 = data[half:len(data)-1]
-        np.save(f_handle, s1)
-        np.save(f_handle, s2)
+    #Save converted dataset to new_file        
+    half = int(math.ceil(len(data)/2))
+    s1 = data[0:half]
+    s2 = data[half:len(data)-1]
+    write_file (data, new_file, result_directory)
 
-
-def symbolic_variables_conversion (dataset, variables, new_file, result_directory):
-    #_PROTOCOL_INDEX = 1 / _SERVICE_INDEX = 2 / _FLAG_INDEX = 3
+"""Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
+    _PROTOCOL_INDEX = 1 / _SERVICE_INDEX = 2 / _FLAG_INDEX = 3
+"""
+def categorical_variables_conversion (dataset, variable_indexes, new_file, result_directory):
+    #New dataset
     data= []
-    i = []
-    symbols = [{} for _ in range(len(variables))]
-    save_file = result_directory + SYS_VARS.separator + new_file
-
-    
+    new_row = []
+    symbols = [{} for _ in range(len(variable_indexes))]
+    #Open dataset file and modified categorical variables
     with open(dataset, 'r') as file:
         reader = csv.reader(file, delimiter = ',')
         for row in reader:
-            index = 0
-            for var in variables:
-                if row[var] not in symbols[index]:
-                    symbols[index][row[var]] = len(symbols[index])
-                i = row
-                i [var] = symbols[index][row[var]]
-                data.append(i)
-                index += 1
-    #Save converted dataset to new_file
-    with open(save_file, 'wb') as f_handle:
-        half = int(math.ceil(len(data)/2))
-        s1 = data[0:half]
-        s2 = data[half:len(data)-1]
-
-        np.save(f_handle, s1)
-        np.save(f_handle, s2)
+            symbol_val_index = 0
+            for var_index in variable_indexes:
+                if row[var_index] not in symbols[symbol_val_index]:
+                    #Add a new 'symbol name' in the symbols map
+                    symbols[symbol_val_index][row[var_index]] = len(symbols[symbol_val_index])
+                #Update row value with its number equivalent
+                new_row = row
+                new_row [var_index] = symbols[symbol_val_index][row[var_index]]
+                data.append(new_row)
+                symbol_val_index += 1
+    #Save converted dataset to new_file        
+    half = int(math.ceil(len(data)/2))
+    s1 = data[0:half]
+    s2 = data[half:len(data)-1]
+    write_file (data, new_file, result_directory)
 
     #Save symbols per variable
     #print(symbols[0])
-    #np.savetxt('test', symbols[0], delimiter=',')   
-    for index in range (0, len(variables)-1):
-        name = 'train_var'+str(variables[index])+'.txt'
+    #np.savetxt('test', symbols[0], delimiter=',')
+    variable_file =  result_directory+SYS_VARS.separator+ "train_var"
+    for index in range (0, len(variable_indexes)-1):
+        name = variable_file+str(variable_indexes[index])+'.txt'
         with open(name, 'w') as f:
             w = csv.writer(f, delimiter=',')
             for key, val in symbols[index].items():
@@ -103,7 +125,10 @@ def symbolic_variables_conversion (dataset, variables, new_file, result_director
 
 def simple_preprocessing_KDD():
     load_variables(SYS_VARS.KDDCup_path_names)
-
+    """ TRY write and read
+    write_file([[1, 2, 3],[4, 5, 6]], "trial.npy", SYS_VARS.KDDCup_path_result)
+    sample = read_file("trial.npy", SYS_VARS.KDDCup_path_result)
+    print (sample) """
     """Divide the samples into attacks of type A and rest
     select_attack('normal.', SYS_VARS.KDDCup_path_train)
     others = []
@@ -118,10 +143,11 @@ def simple_preprocessing_KDD():
     symbolic_known_variable_conversion (SYS_VARS.KDDCup_path_train_10, attacks_map, _ATTACK_INDEX_KDD, 'KDD_train_attack_10.npy', SYS_VARS.KDDCup_path_result)"""
 
     """Convert ALL symbols to integers"""
-    saved_preprocess = 'KDD_train_num_10.npy'
+    saved_preprocess = "KDD_train_num_10.npy"
     #TODO Generate the preprocessed samples
-    symbolic_variables_conversion (SYS_VARS.KDDCup_path_train_10, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX, _ATTACK_INDEX_KDD], saved_preprocess, SYS_VARS.KDDCup_path_result)
-    return np.transpose(np.load(SYS_VARS.KDDCup_path_result+SYS_VARS.separator+saved_preprocess).astype(np.float))
+    categorical_variables_conversion (SYS_VARS.KDDCup_path_train_10, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.KDDCup_path_result)
+    categorical_known_variable_conversion (SYS_VARS.KDDCup_path_result+SYS_VARS.separator+saved_preprocess, attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result)
+    return read_file(saved_preprocess, SYS_VARS.KDDCup_path_result).astype(np.float)
     
 
                 

@@ -66,14 +66,7 @@ class MLP_2(object):
 
 ########################################################################
     
-def separateClasses(train_data, key_index):
-    classified_data = []
-    #y = np.zeros((1, train_data.shape[1]))
-    y = []
-    #Transpose to iterate row by row
-    for value in np.transpose(train_data[:]):
-        y  = np.concatenate([y, [value[int(key_index)]]], axis=0)
-    return y
+
     
             
        

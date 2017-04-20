@@ -49,6 +49,15 @@ class MLP_1x16(object):
     def test (self, X_test):
         return self.classifier.predict(X_test)
 
+    def test_batch (self, X_test):
+        return self.classifier.predict(np.transpose(X_test.reshape(X_test.shape[0], -1))).flatten()
+
+    def do_nothing(self, X_test):
+        return X_test
+
+    def compute_dataset(self, input):
+        return np.apply_along_axis(self.test_batch, axis=0, arr=input)
+
 #MULTILAYER PERCEPTRON: 2 HIDDEN LAYERS {41 units, 5 units}
 class MLP_2(object):
     

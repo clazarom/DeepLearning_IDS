@@ -36,7 +36,8 @@ class SparseAutoencoder(object):
         self.limit2 = 2 * hidden_size * visible_size # W2 size: hidden x visible
         self.limit3 = 2 * hidden_size * visible_size + hidden_size
         self.limit4 = 2 * hidden_size * visible_size + hidden_size + visible_size
-        
+
+
         """ Initialize Neural Network weights randomly
             W1, W2 values are chosen in the range [-r, r] """
         
@@ -51,6 +52,12 @@ class SparseAutoencoder(object):
         
         b1 = numpy.zeros((hidden_size, 1))
         b2 = numpy.zeros((visible_size, 1))
+
+        """ Initialize optimal parameters """
+        self.opt_W1 = numpy.asarray(rand.uniform(low = -r, high = r, size = (hidden_size, visible_size)))
+        self.opt_W2 = numpy.asarray(rand.uniform(low = -r, high = r, size = (visible_size, hidden_size)))
+        self.opt_b1 = numpy.zeros((hidden_size, 1))
+        self.opt_b2 = numpy.zeros((visible_size, 1))
 
         """ Create 'theta' by unrolling W1, W2, b1, b2 """
 
@@ -76,7 +83,7 @@ class SparseAutoencoder(object):
         
         """ Compute output layers by performing a feedforward pass
             Computation is done for all the training inputs simultaneously """
-        hidden_layer, output_layer = self.computeOutputLayer(W1, W2, b1, b2, input)
+        hidden_layer, output_layer = self.compute_layer(input, W1, W2, b1, b2)
         #hidden_layer = self.sigmoid(numpy.dot(W1, input) + b1)
         #output_layer = self.sigmoid(numpy.dot(W2, hidden_layer) + b2)
         
@@ -131,13 +138,42 @@ class SparseAutoencoder(object):
         return [cost, theta_grad]
 
     ###########################################################################################
-    def computeOutputLayer(self, W1, W2, b1, b2, input):
+    """ Set deault net parameters """
+    def set_inner_weightsBiases(self, W1, W2, b1, b2):
+        self.opt_W1 = W1
+        self.opt_W2 = W2
+        self.opt_b1 = b1
+        self.opt_b2 = b2
+    """Compute one sample of the dataset - input is a 2d array, with 1 column
+        [[value1], [value2], ... [valueN]]
+        row = datast[:, 1:2]"""
+    def compute_layer(self, input, W1, W2, b1, b2):
         hidden_layer = self.sigmoid(numpy.add(numpy.dot(W1, input),b1))
         output_layer = self.sigmoid(numpy.add(numpy.dot(W2, hidden_layer),b2))
         #print ("Input: "+str(input.shape[0]) +" x "+str(input.shape[1]))
         #print ("Hidden: "+str(hidden_layer.shape[0]) +" x "+str(hidden_layer.shape[1]))
         #print ("Output: "+str(output_layer.shape[0])+" x " +str(output_layer.shape[1]))
         return hidden_layer, output_layer
+
+    def do_nothing(self, input):
+        return input
+
+    """Compute one sample of the dataset - input is a 1d array vector
+        [value1, value2, ... valueN]
+        row = dataset[:, 2]"""    
+    def compute_function(self, input):
+        hidden_layer = self.sigmoid(numpy.add(numpy.dot(self.opt_W1, input.reshape(input.shape[0], -1)),self.opt_b1))
+        output_layer = self.sigmoid(numpy.add(numpy.dot(self.opt_W2, hidden_layer),self.opt_b2))
+        return output_layer.flatten()
+    
+    def compute_dataset(self, input, W1, W2, b1, b2):
+        """y = []
+        for index in range(input.shape[1]):
+            y.append(self.compute_layer(input[:,index], W1, W2, b1, b2))
+        y_mat= numpy.transpose(numpy.array(y))
+        return y_mat"""
+        self.set_inner_weightsBiases(W1, W2, b1, b2)
+        return numpy.apply_along_axis(self.compute_function, axis=0, arr=input)
 
     ############################################################################################
     def train(self, training_data, max_iterations, algorithm = 'L-BFGS-B'):

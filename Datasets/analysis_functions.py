@@ -8,13 +8,12 @@ import matplotlib.pyplot as plt
 # Training data: X = n_samples x m_features
 # NOTE
 
-""" Plot confusion matrix: ref http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py"""
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues):
     """
-    This function prints and plots the confusion matrix.
+    Plot confusion matrix: ref http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
     Normalization can be applied by setting `normalize=True`.
     """
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -47,20 +46,22 @@ def validation(classifier, data, y_data, y_target, class_names):
     #kfold = KFold(n_splits=10, shuffle=True, random_state=seed)
     #cv = kfold
     x =  np.transpose(data)
-    accuracy = model_selection.cross_val_score(classifier, x, y_target, scoring='accuracy')
+    if (classifier == None):
+        print ("No accuracy to be computed")
+    else:
+        accuracy = model_selection.cross_val_score(classifier, x, y_target, scoring='accuracy')
+        print("Accuracy: "+str(accuracy[0]))
     #precision = model_selection.cross_val_score(self.classifier, x, target, scoring='precision')
     #precision_score(y_true, y_pred, average='macro')  
     #recall = model_selection.cross_val_score(self.classifier, x, target, scoring='recall')
     precision, recall, fscore, m = precision_recall_fscore_support(y_target, y_data, average='macro')
     cnf_matrix = confusion_matrix(y_target, y_data)
-
-    print("MLP Validation:")
-    print(str(accuracy[0]) +", " +str(precision) +", " +str(recall))
+    print("Precission: " +str(precision) +", Recall:" +str(recall))
 
     np.set_printoptions(precision=2)
     # Plot non-normalized confusion matrix
     plt.figure()
-    plot_confusion_matrix(cnf_matrix, classes=class_names, normalize = True, title='Confusion matrix')
+    plot_confusion_matrix(cnf_matrix, classes=class_names, title='Confusion matrix')
     print ("... finishing matrix plot")
     plt.show()
 

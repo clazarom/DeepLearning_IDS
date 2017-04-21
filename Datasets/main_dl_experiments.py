@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from sklearn import preprocessing
 import SYS_VARS
 import load_dataset as kdd
 from autoencoders import SparseAutoencoder
@@ -9,30 +10,42 @@ import analysis_functions
 
 
 ###########################################################################################
-""" Normalize the dataset provided as input """
 
 def normalize_dataset(dataset):
+    """ Normalize the dataset provided as input """
 
-    """ Remove mean of dataset """
+    """#Remove mean of dataset 
     dataset = dataset - np.mean(dataset)
-    
-    """ Truncate to +/-3 standard deviations and scale to -1 to 1 """
+    #Truncate to +/-3 standard deviations and scale to -1 to 1
     std_dev = 3 * np.std(dataset)
     dataset = np.maximum(np.minimum(dataset, std_dev), -std_dev) / std_dev
-    
-    """ Rescale from [-1, 1] to [0.1, 0.9] """
+    #Rescale from [-1, 1] to [0.1, 0.9]
     dataset = (dataset + 1) * 0.4 + 0.1
+    return dataset"""
     
-    return dataset
+    return  preprocessing.scale(dataset)
+
+
+
+def softmax (x):
+    """ Compute softmax values for each sets of scores in x.
+        S(xi) =  exp[xi] / Sum {exp[xi]} 
+    """
+    assert len(x.shape) == 2
+    s = np.max(x, axis=1)
+    s = s[:, np.newaxis] # necessary step to do broadcasting
+    e_x = np.exp(x - s)
+    s_denom = np.sum(e_x, axis=1)
+    s_denom = s_denom[:, np.newaxis] # dito
+    return e_x / s_denom
 
 
 ###########################################################################################
-""" Loads data, trains the Autoencoder and visualizes the learned weights """
 
 def execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, train_data):  
+    """ Trains the Autoencoder with the trained data and parameters and returns train_data after the network """
     
-    
-    """ Initialize the Autoencoder with its parameters and train"""
+    #Initialize the Autoencoder with its parameters and train
     encoder = SparseAutoencoder(visible_size, hidden_size, rho, lamda, beta)
     #opt_solution  = scipy.optimize.minimize(encoder, encoder.theta, args = (training_data,), method = 'L-BFGS-B', jac = True, options = {'maxiter': max_iterations, 'disp' : True})
     opt_solution = encoder.train (train_data, max_iterations)
@@ -60,32 +73,97 @@ def execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hi
     # Return input dataset computed with autoencoder
     return encoder.compute_dataset(train_data, opt_W1, opt_W2, opt_b1, opt_b2)
 
-def execute_MLP(train_data, y, classes_names):
-     # 1 HIDDEN LAYER, 16 
-    mlp = MLP_general(16)    
+def execute_MLP(train_data, hidden_layers, y, classes_names):
+    """ Trains the MLP with the train_data and returns train_data after the network """
+    # Train
+    mlp = MLP_general(hidden_layers)    
     print ("Training..."+str(y.shape) +  "(labels) and " +str(train_data.shape)+"(dataset)")
     mlp.train(np.transpose(train_data), y, 'trial')
     print ("To test..."+str(train_data[kdd._ATTACK_INDEX_KDD, 4:5]))
-    # Compute one sample - train_data[:, 4:5]
-    """prediction16 = mlp_16.test(np.transpose(train_data[:, 4:5]))
+    # Compute for all train_data
+    """ Compute one sample - train_data[:, 4:5]
+    prediction1 = mlp.test(np.transpose(train_data[:, 4:5]))
     print ("Prediction: " + str(prediction16))
-    for value in prediction16:
+    for value in prediction1:
         for k in kdd.attacks_map.keys():
             if (int(value) == kdd.attacks_map[k]):
                 print(k)"""
     y_data = mlp.compute_dataset(train_data)
-    # Validate
-    analysis_functions.validation(mlp.classifier, train_data, y_data, y, classes_names)
     #analysis_functions.print_totals(y_data, y)
 
     return y_data
+
+
+########### IDS with DEEPLEARNING #############################
+
+def deeplearning_sae_mlp(x_train_normal, y, classes_names):
+     
+
+    ######## SPARSE AUTOENCODER TRAINING
+    """ Define the parameters of the Autoencoder """
+    rho            = 0.01   # desired average activation of hidden units... should be tuned!!
+    lamda          = 0.0001 # weight decay parameter
+    beta           = 3      # weight of sparsity penalty term
+    max_iterations = 400    # number of optimization iterations
+    visible_size = 41       # input & output sizes: KDDCup99 # of features
+    hidden_size = 50        # sparse-autoencoder benefits from larger hidden layer units """
+    """ Train and do a test over the same traindata """
+    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, x_train_normal)
+    
+        
+    ######## MULTILAYER PERCEPTRONS
+    h_layers = [64 , 16]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
+    y_predicted = execute_MLP(featured_x, hidden_layers = h_layers,y =  y, classes_names = classes_names)
+
+    print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
+
+    return mlp, y_predicted
+
+def deeplearning_sae_sae(x_train_normal):
+   
+
+    ######## SPARSE AUTOENCODER TRAINING
+    """ Define the parameters of the Autoencoder """
+    rho            = 0.01   # desired average activation of hidden units... should be tuned!!
+    lamda          = 0.0001 # weight decay parameter
+    beta           = 3      # weight of sparsity penalty term
+    max_iterations = 400    # number of optimization iterations
+    visible_size = 41       # input & output sizes: KDDCup99 # of features
+    hidden_size = 50        # sparse-autoencoder benefits from larger hidden layer units """
+    """ Train and do a test over the same traindata """
+    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, x_train_normal)
+    
+        
+    ######## SPARSE AUTOENCODER AND SOFTMAX FOR Classification
+    """ Define the parameters of the Autoencoder """
+    rho            = 0.01   # desired average activation of hidden units... should be tuned!!
+    lamda          = 0.0001 # weight decay parameter
+    beta           = 3      # weight of sparsity penalty term
+    max_iterations = 400    # number of optimization iterations
+    visible_size = 41       # input & output sizes: KDDCup99 # of features
+    hidden_size = 16        # sparse-autoencoder benefits from larger hidden layer units """
+
+    """ Train and do a test over the same traindata """
+    y_prima = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, featured_x)
+    y_predicted = softmax(y_prima)
+    print(str(y_predicted[:, 1]))
+
+    return y_predicted
+
 
 ###########################################################################
 
     
 def main():
-    
-    ####### LOAD KDD dataset 
+    #test soft max -solution
+    #without normalization: [[ 0.00626879  0.01704033  0.04632042  0.93037047]
+    #                       [ 0.01203764  0.08894682  0.24178252  0.65723302]
+    #                       [ 0.00626879  0.01704033  0.04632042  0.93037047]]
+    x2 = np.array([[1, 2, 3, 6],  # sample 1
+               [2, 4, 5, 6],  # sample 2
+               [1, 2, 3, 6]]) # sample 1 again(!)
+    print(softmax(normalize_dataset(x2)))
+    # LOAD KDD dataset 
     pre_data = np.transpose(kdd.simple_preprocessing_KDD())
     x_train, y, classes_names =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
     x_train_normal = normalize_dataset(x_train)
@@ -102,24 +180,19 @@ def main():
         move.append(training_data[:,index])
     move_mat= np.transpose(np.array(move))
     print (str(move_mat.shape[1]))"""
+    #First deep learning architecture: SAE (feature selection) and MLP (classifier)
+    mlp, y_n1 = deeplearning_sae_mlp(x_train_normal, y, classes_names)
 
-    ######## SPARSE AUTOENCODER TRAINING
-    """ Define the parameters of the Autoencoder """
-    rho            = 0.01   # desired average activation of hidden units... should be tuned!!
-    lamda          = 0.0001 # weight decay parameter
-    beta           = 3      # weight of sparsity penalty term
-    max_iterations = 400    # number of optimization iterations
-    visible_size = 41       # input & output sizes: KDDCup99 # of features
-    hidden_size = 50        # sparse-autoencoder benefits from larger hidden layer units """
-    """ Train and test a sample of the system """
-    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, x_train_normal)
-    
-        
-    ######## MULTILAYER PERCEPTRONS
-    y_predicted = execute_MLP(featured_x, y, classes_names)
+    #Second deep learning architecture: SAE (feature selection) and SAE-softmax (classifier)
+    y_n2 = deeplearning_sae_sae(x_train_normal)
 
+    #Validation
+    print("\nSAE and MLP Validation")
+    analysis_functions.validation(mlp.classifier, train_data, y_n1, y, classes_names)
+    print("\nSAE and SAE-softmax Validation")
+    analysis_functions.validation(None, train_data, y_n1, y, classes_names)
 
-    print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
+   
 
 
 if __name__ == "__main__":main() ## with if

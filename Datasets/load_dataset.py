@@ -209,15 +209,17 @@ def plot_attacks (dataset, a_index):
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
     plt.show()
 
+""" Separate dataset into classes 
+        First simples version: each attack is a class"""
 def separate_classes(train_data, key_index):
-    classified_data = []
     #y = np.zeros((1, train_data.shape[1]))
     y = np.transpose(train_data[key_index, :])
     x = np.delete(train_data, key_index, 0)
+    classes_names = attacks_map.keys()
     #Transpose to iterate row by row
     #for value in np.transpose(train_data):
         #y  = np.concatenate([y, [value[int(key_index)]]], axis=0)
-    return x, y
+    return x, y, classes_names
 
 
 

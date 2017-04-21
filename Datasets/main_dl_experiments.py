@@ -1,10 +1,11 @@
 import sys
 import numpy as np
-from MLP_nets import MLP_1x16
 import SYS_VARS
 import load_dataset as kdd
 from autoencoders import SparseAutoencoder
+from MLP_nets import MLP_general
 import scipy.optimize
+import analysis_functions
 
 
 ###########################################################################################
@@ -59,11 +60,11 @@ def execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hi
     # Return input dataset computed with autoencoder
     return encoder.compute_dataset(train_data, opt_W1, opt_W2, opt_b1, opt_b2)
 
-def execute_MLP(train_data, y):
+def execute_MLP(train_data, y, classes_names):
      # 1 HIDDEN LAYER, 16 
-    mlp_16 = MLP_1x16()    
+    mlp = MLP_general(16)    
     print ("Training..."+str(y.shape) +  "(labels) and " +str(train_data.shape)+"(dataset)")
-    mlp_16.train(np.transpose(train_data), y, 'trial')
+    mlp.train(np.transpose(train_data), y, 'trial')
     print ("To test..."+str(train_data[kdd._ATTACK_INDEX_KDD, 4:5]))
     # Compute one sample - train_data[:, 4:5]
     """prediction16 = mlp_16.test(np.transpose(train_data[:, 4:5]))
@@ -72,21 +73,27 @@ def execute_MLP(train_data, y):
         for k in kdd.attacks_map.keys():
             if (int(value) == kdd.attacks_map[k]):
                 print(k)"""
-    return mlp_16.compute_dataset(train_data)
+    y_data = mlp.compute_dataset(train_data)
+    # Validate
+    analysis_functions.validation(mlp.classifier, train_data, y_data, y, classes_names)
+    #analysis_functions.print_totals(y_data, y)
+
+    return y_data
 
 ###########################################################################
 
     
 def main():
-    """ Load KDD dataset"""
+    
+    ####### LOAD KDD dataset 
     pre_data = np.transpose(kdd.simple_preprocessing_KDD())
-    x_train, y =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
-    training_data = normalize_dataset(x_train)
+    x_train, y, classes_names =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
+    x_train_normal = normalize_dataset(x_train)
 
     print("Data preprocessing results:" )
     print("indata "+str(pre_data.shape[1]))
     print("classfied "+str(x_train.shape[1]))
-    print("normalized " +str(training_data.shape[1]))
+    print("normalized " +str(x_train_normal.shape[1]))
 
 
     """move = []
@@ -105,13 +112,14 @@ def main():
     visible_size = 41       # input & output sizes: KDDCup99 # of features
     hidden_size = 50        # sparse-autoencoder benefits from larger hidden layer units """
     """ Train and test a sample of the system """
-    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, training_data)
+    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, x_train_normal)
     
         
     ######## MULTILAYER PERCEPTRONS
-    y_predicted = execute_MLP(featured_x, y)
+    y_predicted = execute_MLP(featured_x, y, classes_names)
 
-    print(str(y_predicted[0, 0]) +" vs real: "+ str(y[0]))
+
+    print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
 
 
 if __name__ == "__main__":main() ## with if

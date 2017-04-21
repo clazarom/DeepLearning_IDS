@@ -1,48 +1,19 @@
 from sklearn.neural_network import MLPClassifier
+from sklearn import model_selection # cross_val_score
+from sklearn.metrics import precision_score, precision_recall_fscore_support
 import numpy as np
 # MORE INFO: http://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html
 # Training data: X = n_samples x m_features
 # NOTE
 
-#MULTILAYERP PERCEPTRON: 1 HIDDEN LAYER AND 64 UNITS
-class MLP_1x64(object):
-    
-    classifier = []
 
-    def __init__(self):
-        #MLPClassifier(activation='relu', alpha=1e-05, batch_size='auto', beta_1=0.9, beta_2=0.999, early_stopping=False,
-        #       epsilon=1e-08, hidden_layer_sizes=(5, 2), learning_rate='constant',
-        #       learning_rate_init=0.001, max_iter=200, momentum=0.9,
-        #       nesterovs_momentum=True, power_t=0.5, random_state=1, shuffle=True,
-        #       solver='lbfgs', tol=0.0001, validation_fraction=0.1, verbose=False,
-        #       warm_start=False)
+""" Generic Multilayer Perceptron"""
+class MLP_general(object):
 
-        #hidden_layer =  1x (# hidden layers - 2) . Each value: units in the hidden layer
+    """ Create and set the layers with their sizes i.e. (MLP_general(10, 20) has 2 layers of sizes 10 and 20)"""
+    def __init__(self, *layers, a =1e-5, max_i = 1500):
+        self.classifier = MLPClassifier(solver='adam', alpha=a, *layers, random_state=1, max_iter = max_i, verbose = True)
 
-        # With either algorithm as solver:
-        #   -  Stochastic Gradient Descent
-        #   -  Adam:  refers to a stochastic gradient-based optimizer proposed by Kingma, Diederik, and Jimmy Ba
-        #           -->  works pretty well on relatively large datasets (with thousands of training samples or more) in terms of both training time and validation score. 
-        #   -  L-BFGS: optimizer in the family of quasi-Newton methods.
-        #           --> For small datasets, however, ‘lbfgs’ can converge faster and perform better.
-        
-        self.classifier = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(64), random_state=1, max_iter = 1500, verbose = True)
-    
-    def train(self, X, y, dataset):
-        #Fit / Training
-        self.classifier.fit(X, y)
-
-    def test (self, X_test):
-        return self.classifier.predict(X_test)
-
-#MULTILAYERP PERCEPTRON: 1 HIDDEN LAYER AND 16 UNITS
-class MLP_1x16(object):
-    
-    classifier = []
-
-    def __init__(self):
-        self.classifier = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(16), random_state=1, max_iter = 1500, verbose = True)
-    
     def train(self, X, y, dataset):    
         self.classifier.fit(X, y)
 
@@ -56,22 +27,20 @@ class MLP_1x16(object):
         return X_test
 
     def compute_dataset(self, input):
-        return np.apply_along_axis(self.test_batch, axis=0, arr=input)
+        return np.apply_along_axis(self.test_batch, axis=0, arr=input).flatten()
 
-#MULTILAYER PERCEPTRON: 2 HIDDEN LAYERS {41 units, 5 units}
-class MLP_2(object):
-    
-    classifier = []
+    def validation(self, data, y_data, y_target):
+        #kfold = KFold(n_splits=10, shuffle=True, random_state=seed)
+        #cv = kfold
+        x =  np.transpose(data)
+        accuracy = model_selection.cross_val_score(self.classifier, x, y_target, scoring='accuracy')
+        #precision = model_selection.cross_val_score(self.classifier, x, target, scoring='precision')
+        #precision_score(y_true, y_pred, average='macro')  
+        #recall = model_selection.cross_val_score(self.classifier, x, target, scoring='recall')
+        precision, recall, fscore, m = precision_recall_fscore_support(y_target, y_data, average='macro')
+        print("MLP Validation:")
+        print(str(accuracy[0]) +", " +str(precision) +", " +str(recall))
 
-    def __init__(self):
-        self.classifier = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(41, 5), random_state=1, max_iter = 1500, verbose = True)
-    
-    def train(self, X, y, dataset):
-        
-        self.classifier.fit(X, y)
-
-    def test (self, X_test):
-        return self.classifier.predict(X_test)
 
 ########################################################################
     

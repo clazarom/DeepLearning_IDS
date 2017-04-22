@@ -3,6 +3,7 @@ import SYS_VARS
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+from sklearn.preprocessing import OneHotEncoder
 
 attacks_map  = {} #attacks_map = {attack_name: attack_index, ...}
 feature_names = []
@@ -43,58 +44,71 @@ def load_variables (var_names):
         print ('\n FEATURES')
         print(feature_names)
         
-"""Write data into a file_name located in file_directory """
 def write_file (data, file_name, file_directory):
+    """Write data into a file_name located in file_directory """
     variable_file =  file_directory+SYS_VARS.separator+file_name
     with open(variable_file, 'wb') as f_handle:
         #w = csv.writer(f_handle, delimiter=',')
         np.save(f_handle, data)
         #np.savetxt(name, symbols[index], delimiter=',')
 
-"""Open a a file_name located in file_directory and return its content as numpy darray """
 def read_file(file_name, file_directory):
+    """Open a a file_name located in file_directory and return its content as numpy darray """
     variable_file =  file_directory+SYS_VARS.separator+file_name
     return np.load(variable_file)
 
 
 ##################### DATA PREPROCESSING #####################
-"""Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
+
+def categorical_labels_conversion (dataset, symbols_map, variable_index, new_file, result_directory, processed_file):
+    """Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
     When we know the mapping of catogry to number
-"""
-def categorical_known_variable_conversion (dataset, symbols_map, variable_index, new_file, result_directory):
+    """
     data= []
     i = []
     save_file = result_directory + SYS_VARS.separator + new_file
     #Open dataset file and modified categorical variable
-    """with open(dataset, 'r') as file:
-        reader = csv.reader(file, delimiter = ',')
-        for row in reader:
-            i = row
-            i [variable_index]= symbols_map[row[variable_index]]
-            data.append(i) """
-    file_content = read_file(new_file, result_directory)
+    if (processed_file):
+        file_content = read_file(dataset, file_directory)
+        for row in file_content:
+                i = row
+                i [variable_index]= symbols_map[row[variable_index]]
+                data.append(i)
+    else:
+        with open(dataset, 'r') as file:
+            reader = csv.reader(file, delimiter = ',')
+            for row in reader:
+                i = row
+                i [variable_index]= symbols_map[row[variable_index]]
+                data.append(i)
+
+    """ Read from process data
+    file_content =read_file(dataset, file_directory)
     for row in file_content:
             i = row
             i [variable_index]= symbols_map[row[variable_index]]
-            data.append(i)
+            data.append(i)"""
     #Save converted dataset to new_file        
     half = int(math.ceil(len(data)/2))
     s1 = data[0:half]
     s2 = data[half:len(data)-1]
     write_file (data, new_file, result_directory)
 
-"""Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
+
+
+def categorical_features_conversion (dataset, variable_indexes, new_file, result_directory, processed_file):
+    """Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
     _PROTOCOL_INDEX = 1 / _SERVICE_INDEX = 2 / _FLAG_INDEX = 3
-"""
-def categorical_variables_conversion (dataset, variable_indexes, new_file, result_directory):
+    """
+
     #New dataset
     data= []
     new_row = []
     symbols = [{} for _ in range(len(variable_indexes))]
     #Open dataset file and modified categorical variables
-    with open(dataset, 'r') as file:
-        reader = csv.reader(file, delimiter = ',')
-        for row in reader:
+    if (processed_file):
+        file_content = read_file(dataset, result_directory)
+        for row in file_content:
             symbol_val_index = 0
             for var_index in variable_indexes:
                 if row[var_index] not in symbols[symbol_val_index]:
@@ -105,23 +119,39 @@ def categorical_variables_conversion (dataset, variable_indexes, new_file, resul
                 new_row [var_index] = symbols[symbol_val_index][row[var_index]]
                 data.append(new_row)
                 symbol_val_index += 1
-    #Save converted dataset to new_file        
-    half = int(math.ceil(len(data)/2))
-    s1 = data[0:half]
-    s2 = data[half:len(data)-1]
-    write_file (data, new_file, result_directory)
+    else:
+        with open(dataset, 'r') as file:
+            reader = csv.reader(file, delimiter = ',')
+            for row in reader:
+                symbol_val_index = 0
+                for var_index in variable_indexes:
+                    if row[var_index] not in symbols[symbol_val_index]:
+                        #Add a new 'symbol name' in the symbols map
+                        symbols[symbol_val_index][row[var_index]] = len(symbols[symbol_val_index])
+                    #Update row value with its number equivalent
+                    new_row = row
+                    new_row [var_index] = symbols[symbol_val_index][row[var_index]]
+                    data.append(new_row)
+                    symbol_val_index += 1 
+    data = np.array(data)               
+    return data
+   
 
-    #Save symbols per variable
-    #print(symbols[0])
-    #np.savetxt('test', symbols[0], delimiter=',')
-    variable_file =  result_directory+SYS_VARS.separator+ "train_var"
-    for index in range (0, len(variable_indexes)-1):
-        name = variable_file+str(variable_indexes[index])+'.txt'
-        with open(name, 'w') as f:
-            w = csv.writer(f, delimiter=',')
-            for key, val in symbols[index].items():
-                w.writerow([key, val])
-            #np.savetxt(name, symbols[index], delimiter=',')
+def categorical_features_onehot (dataset, variable_indexes, new_file, result_directory, processed_file):
+    #Convert to numerical
+    d_numerical = categorical_features_conversion (dataset, variable_indexes, new_file, result_directory, processed_file)
+
+    #OneHot encoding
+    enc = OneHotEncoder(categorical_features = variable_indexes)
+    enc.fit(d_numerical)
+
+    #Save converted dataset to new_file        
+    half = int(math.ceil(len(d_numerical)/2))
+    s1 = d_numerical[0:half]
+    s2 = d_numerical[half:len(d_numerical)-1]
+    write_file (d_numerical, new_file, result_directory)
+
+
 
 def simple_preprocessing_KDD():
     load_variables(SYS_VARS.KDDCup_path_names)
@@ -145,8 +175,8 @@ def simple_preprocessing_KDD():
     """Convert ALL symbols to integers"""
     saved_preprocess = "KDD_train_num_10.npy"
     #TODO Generate the preprocessed samples
-    categorical_variables_conversion (SYS_VARS.KDDCup_path_train_10, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.KDDCup_path_result)
-    categorical_known_variable_conversion (SYS_VARS.KDDCup_path_result+SYS_VARS.separator+saved_preprocess, attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result)
+    categorical_labels_conversion (SYS_VARS.KDDCup_path_train_10 , attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result, False)
+    categorical_features_onehot (saved_preprocess, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.KDDCup_path_result, True)
     return read_file(saved_preprocess, SYS_VARS.KDDCup_path_result).astype(np.float)
     
 
@@ -209,9 +239,11 @@ def plot_attacks (dataset, a_index):
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
     plt.show()
 
-""" Separate dataset into classes 
-        First simples version: each attack is a class"""
+
 def separate_classes(train_data, key_index):
+    """ Separate dataset into classes 
+        First simples version: each attack is a class"""
+
     #y = np.zeros((1, train_data.shape[1]))
     y = np.transpose(train_data[key_index, :])
     x = np.delete(train_data, key_index, 0)

@@ -49,8 +49,8 @@ def validation(classifier, data, y_data, y_target, class_names):
     if (classifier == None):
         print ("No accuracy to be computed")
     else:
-        accuracy = model_selection.cross_val_score(classifier, x, y_target, scoring='accuracy')
-        print("Accuracy: "+str(accuracy[0]))
+        #accuracy = model_selection.cross_val_score(classifier, x, y_target, scoring='accuracy')
+        print("Accuracy: ")
     #precision = model_selection.cross_val_score(self.classifier, x, target, scoring='precision')
     #precision_score(y_true, y_pred, average='macro')  
     #recall = model_selection.cross_val_score(self.classifier, x, target, scoring='recall')

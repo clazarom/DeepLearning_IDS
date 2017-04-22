@@ -12,18 +12,22 @@ import analysis_functions
 ###########################################################################################
 
 def normalize_dataset(dataset):
-    """ Normalize the dataset provided as input """
+    """ Normalize the dataset provided as input, values in scalte 0 to 1 """
+    min_max_scaler = preprocessing.MinMaxScaler()
+    return min_max_scaler.fit_transform(dataset)
 
-    """#Remove mean of dataset 
+def sparse_normalize_dataset(dataset):
+    """ Normaliza dataset without removing the sparseness structure of the data """
+    #Remove mean of dataset 
     dataset = dataset - np.mean(dataset)
     #Truncate to +/-3 standard deviations and scale to -1 to 1
     std_dev = 3 * np.std(dataset)
     dataset = np.maximum(np.minimum(dataset, std_dev), -std_dev) / std_dev
     #Rescale from [-1, 1] to [0.1, 0.9]
-    dataset = (dataset + 1) * 0.4 + 0.1
-    return dataset"""
-    
-    return  preprocessing.scale(dataset)
+    #dataset = (dataset + 1) * 0.4 + 0.1
+    dataset = (dataset-np.amin(dataset))/(np.amax(dataset)-np.amin(dataset))
+    return dataset
+    #return preprocessing.MaxAbsScaler().fit_transform(dataset)
 
 
 
@@ -91,12 +95,12 @@ def execute_MLP(train_data, hidden_layers, y, classes_names):
     y_data = mlp.compute_dataset(train_data)
     #analysis_functions.print_totals(y_data, y)
 
-    return y_data
+    return mlp, y_data
 
 
 ########### IDS with DEEPLEARNING #############################
 
-def deeplearning_sae_mlp(x_train_normal, y, classes_names):
+def deeplearning_sae_mlp(train_data, y, classes_names):
      
 
     ######## SPARSE AUTOENCODER TRAINING
@@ -108,12 +112,12 @@ def deeplearning_sae_mlp(x_train_normal, y, classes_names):
     visible_size = 41       # input & output sizes: KDDCup99 # of features
     hidden_size = 50        # sparse-autoencoder benefits from larger hidden layer units """
     """ Train and do a test over the same traindata """
-    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, x_train_normal)
+    featured_x = execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hidden_size, train_data)
     
         
     ######## MULTILAYER PERCEPTRONS
     h_layers = [64 , 16]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
-    y_predicted = execute_MLP(featured_x, hidden_layers = h_layers,y =  y, classes_names = classes_names)
+    mlp, y_predicted = execute_MLP(featured_x, hidden_layers = h_layers,y =  y, classes_names = classes_names)
 
     print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
 
@@ -162,11 +166,11 @@ def main():
     x2 = np.array([[1, 2, 3, 6],  # sample 1
                [2, 4, 5, 6],  # sample 2
                [1, 2, 3, 6]]) # sample 1 again(!)
-    print(softmax(normalize_dataset(x2)))
+    print(softmax(sparse_normalize_dataset(x2)))
     # LOAD KDD dataset 
     pre_data = np.transpose(kdd.simple_preprocessing_KDD())
     x_train, y, classes_names =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
-    x_train_normal = normalize_dataset(x_train)
+    x_train_normal = sparse_normalize_dataset(x_train)
 
     print("Data preprocessing results:" )
     print("indata "+str(pre_data.shape[1]))
@@ -188,9 +192,9 @@ def main():
 
     #Validation
     print("\nSAE and MLP Validation")
-    analysis_functions.validation(mlp.classifier, train_data, y_n1, y, classes_names)
+    analysis_functions.validation(mlp.classifier, x_train_normal, y_n1, y, classes_names)
     print("\nSAE and SAE-softmax Validation")
-    analysis_functions.validation(None, train_data, y_n1, y, classes_names)
+    analysis_functions.validation(None, x_train_normal, y_n1, y, classes_names)
 
    
 

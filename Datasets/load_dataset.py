@@ -1,21 +1,30 @@
 import csv
 import SYS_VARS
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import math
 from sklearn.preprocessing import OneHotEncoder
 
+#Maps for some categorical variables
 attacks_map  = {} #attacks_map = {attack_name: attack_index, ...}
 feature_names = []
-    
+
+#Known columns/indexes for categorical variables  
 _ATTACK_INDEX_KDD  = -1
 _ATTACK_INDEX_NSLKDD = -2
-
 _PROTOCOL_INDEX = 1
 _SERVICE_INDEX = 2
 _FLAG_INDEX = 3
 
 _attack_row  = 0
+
+#Attacks classification: 5 types {Probe, DoS, R2L, U2R, Normal}
+_attack_classes ={'ipsweep.': 'probe', 'loadmodule.': 'u2r', 'warezclient.': 'r2l', 'phf.': 'r2l', 'portsweep.': 'probe', 
+                  'smurf.': 'dos', 'imap.': 'r2l', 'multihop.': 'r2l', 'rootkit.': 'u2r', 'satan.': 'probe', 'nmap.': 'probe', 
+                  'back.': 'dos', 'ftp_write.': 'r2l', 'neptune.': 'dos', 'teardrop.': 'dos', 'perl.': 'u2r', 'guess_passwd.': 'r2l', 
+                  'pod.': 'dos', 'normal.': 'normal', 'buffer_overflow.': 'u2r', 'warezmaster.': 'r2l', 'spy.': 'r2l', 'land.': 'dos'}
+_attack_classes_num = {'probe':1, 'dos':2, 'r2l':3, 'u2r':4, 'normal':0}
 
 
 def load_variables (var_names):
@@ -43,6 +52,7 @@ def load_variables (var_names):
         print(attacks_map )
         print ('\n FEATURES')
         print(feature_names)
+
         
 def write_file (data, file_name, file_directory):
     """Write data into a file_name located in file_directory """
@@ -67,7 +77,10 @@ def categorical_labels_conversion (dataset, symbols_map, variable_index, new_fil
     data= []
     i = []
     save_file = result_directory + SYS_VARS.separator + new_file
-    #Open dataset file and modified categorical variable
+
+    #Open dataset file and modified categorical variable:
+    #   - Convert to its attack type (according to attack_classes)
+    #   - Convert to numerical values
     if (processed_file):
         file_content = read_file(dataset, file_directory)
         for row in file_content:
@@ -79,7 +92,8 @@ def categorical_labels_conversion (dataset, symbols_map, variable_index, new_fil
             reader = csv.reader(file, delimiter = ',')
             for row in reader:
                 i = row
-                i [variable_index]= symbols_map[row[variable_index]]
+                #i [variable_index]= symbols_map[row[variable_index]]
+                i [variable_index]= _attack_classes_num[_attack_classes[row[variable_index]]]
                 data.append(i)
 
     """ Read from process data
@@ -93,6 +107,7 @@ def categorical_labels_conversion (dataset, symbols_map, variable_index, new_fil
     s1 = data[0:half]
     s2 = data[half:len(data)-1]
     write_file (data, new_file, result_directory)
+    return data
 
 
 
@@ -166,8 +181,6 @@ def simple_preprocessing_KDD():
     print ('# attacks: ', len(attack))
     print ('# other flows:',len(others))"""
 
-    """Plot all attacks statistics
-    plot_attacks( SYS_VARS.KDDCup_path_train, _ATTACK_INDEX_KDD)"""
 
     """Convert ATTACKS symbol to integer
     symbolic_known_variable_conversion (SYS_VARS.KDDCup_path_train_10, attacks_map, _ATTACK_INDEX_KDD, 'KDD_train_attack_10.npy', SYS_VARS.KDDCup_path_result)"""
@@ -197,33 +210,55 @@ def select_attack(attack_name, dataset, a_index, other):
                 other.append(row)
     return csvFileArray
     
-def get_attacks_percent (dataset, a_index):
+def get_attacks_percent (a_data, a_index, dataset='None'):
     percents = {}
-    for a, index in attacks_map.items():
-        percents[a]= 0
+    attacks = {}
+    #for a, index in attacks_map.items():
+        #percents[a]= 0
+    for a, index in _attack_classes.items():
+        percents[a] = 0
     total = 0
-    with open(dataset, 'r') as file:
-        reader = csv.reader(file, delimiter = ',')
-        for row in reader:
+
+    if (dataset=='None'):
+        print('Dont open file here')
+        for row in np.transpose(a_data)[a_index]:
             total += 1
-            for a, index in attacks_map.items():
-                if row[a_index] == a :
+            for a, index in _attack_classes_num.items():
+                #print(str(row))
+                if row[a_index] == index :
                     percents[a]=percents[a]+1
-                    break
+                    break           
+    else:   
+        with open(dataset, 'r') as file:
+            reader = csv.reader(file, delimiter = ',')
+            for row in reader:
+                total += 1
+                for a, index in attacks_map.items():
+                    if row[a_index] == a :
+                        #percents[a]=percents[a]+1
+                        four_attack = _attack_classes[row[variable_index]]
+                        percents[four_attack] = percents[four_attack]+1
+                        break
+                    
     for a, index in attacks_map.items():
         percents[a]= 100*percents[a]/total
     return percents
                 
 
-def plot_attacks (dataset, a_index):
-    attacks_percents = get_attacks_percent(dataset, a_index)
-    
-    #other = []
-    #for attack, index in attacks_map.items():
-        #attack_tot = select_attack(attack, dataset, a_index, other)
-        #attacks_percents[attack] = len(attack_tot)/(len(attack_tot)+len(other))
-    print ('\n RATIOS ')
-    print (attacks_percents)
+def plot_attacks (a_index, dataset= 'None',  attacks_data = 'None'):
+
+    if (attacks_data == 'None'):
+        attacks_percents = get_attacks_percent(a_index=a_index, dataset=dataset)
+        
+        #other = []
+        #for attack, index in attacks_map.items():
+            #attack_tot = select_attack(attack, dataset, a_index, other)
+            #attacks_percents[attack] = len(attack_tot)/(len(attack_tot)+len(other))
+        print ('\n RATIOS ')
+        print (attacks_percents)
+    else:
+         attacks_percents = get_attacks_percent(a_index=a_index, a_data=attacks_data)
+        
 
     # Pie chart, where the slices will be ordered and plotted counter-clockwise:
     #labels = attacks_percents.keys()
@@ -232,11 +267,29 @@ def plot_attacks (dataset, a_index):
     print (sum(values))
     #explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
 
+    #PLOT PIE CHART
+    y = [float(v) for v in values]
+    N = len(y)
+    x = range(N)
+    x_names = list(keys)
+    matplotlib.rc('xtick', labelsize=5) 
+    width = 1/1.5
+
     fig1, ax1 = plt.subplots()
     #labels=keys,
-    ax1.pie([float(v) for v in values],  autopct='%1.1f%%',
+    ax1.pie(y,  autopct='%1.1f%%',
             shadow=True, startangle=90)
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.show()
+
+    #PLOT BAR DIAGRAM
+    plt.xticks(x, x_names)
+    plt.bar(x, y, width, color="blue", alpha=0.5)
+    #plt.bar(y_pos, performance, align='center', alpha=0.5)
+    #plt.xticks(y_pos, objects)
+    plt.ylabel('%')
+    plt.title('KDD 10% of dataset')
+    fig = plt.gcf()
     plt.show()
 
 
@@ -247,11 +300,23 @@ def separate_classes(train_data, key_index):
     #y = np.zeros((1, train_data.shape[1]))
     y = np.transpose(train_data[key_index, :])
     x = np.delete(train_data, key_index, 0)
-    classes_names = attacks_map.keys()
+    #classes_names = attacks_map.keys()
+    classes_names = _attack_classes_num.keys()
     #Transpose to iterate row by row
     #for value in np.transpose(train_data):
         #y  = np.concatenate([y, [value[int(key_index)]]], axis=0)
     return x, y, classes_names
+
+def plot_various():
+    load_variables(SYS_VARS.KDDCup_path_names)
+    saved_preprocess = "KDD_train_num_10.npy"
+    #plot_attacks (dataset= 'None',  attacks_percents = 'None', a_index)
+    data =  categorical_labels_conversion (SYS_VARS.KDDCup_path_train_10 , attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result, False)
+    plot_attacks( attacks_data = data, a_index = _ATTACK_INDEX_KDD)
+    #plot_attacks( dataset = SYS_VARS.KDDCup_path_train_10, a_index = _ATTACK_INDEX_KDD)
+
+
+
 
 
 

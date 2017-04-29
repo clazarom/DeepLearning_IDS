@@ -100,8 +100,15 @@ def execute_MLP(train_data, hidden_layers, y, classes_names):
 
 ########### IDS with DEEPLEARNING #############################
 
+def ids_mlp(train_data, y, classes_names):
+        
+    ######## MULTILAYER PERCEPTRONS
+    h_layers = [64]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
+    mlp, y_predicted = execute_MLP(train_data, hidden_layers = h_layers,y =  y, classes_names = classes_names)
+    print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
+
+    return mlp, y_predicted
 def deeplearning_sae_mlp(train_data, y, classes_names):
-     
 
     ######## SPARSE AUTOENCODER TRAINING
     """ Define the parameters of the Autoencoder """
@@ -116,7 +123,7 @@ def deeplearning_sae_mlp(train_data, y, classes_names):
     
         
     ######## MULTILAYER PERCEPTRONS
-    h_layers = [64 , 16]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
+    h_layers = [64]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
     mlp, y_predicted = execute_MLP(featured_x, hidden_layers = h_layers,y =  y, classes_names = classes_names)
 
     print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
@@ -124,7 +131,6 @@ def deeplearning_sae_mlp(train_data, y, classes_names):
     return mlp, y_predicted
 
 def deeplearning_sae_sae(x_train_normal):
-   
 
     ######## SPARSE AUTOENCODER TRAINING
     """ Define the parameters of the Autoencoder """
@@ -170,12 +176,16 @@ def main():
     # LOAD KDD dataset 
     pre_data = np.transpose(kdd.simple_preprocessing_KDD())
     x_train, y, classes_names =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
-    x_train_normal = sparse_normalize_dataset(x_train)
+    x_train_normal_s = sparse_normalize_dataset(x_train)
+    x_train_normal = normalize_dataset(x_train)
 
     print("Data preprocessing results:" )
     print("indata "+str(pre_data.shape[1]))
     print("classfied "+str(x_train.shape[1]))
-    print("normalized " +str(x_train_normal.shape[1]))
+    print("normalized " +str(x_train_normal_s.shape[1]))
+    print ("Output classes: ")
+    for c in classes_names:
+        print (c)
 
 
     """move = []
@@ -184,17 +194,22 @@ def main():
         move.append(training_data[:,index])
     move_mat= np.transpose(np.array(move))
     print (str(move_mat.shape[1]))"""
+    
     #First deep learning architecture: SAE (feature selection) and MLP (classifier)
-    mlp, y_n1 = deeplearning_sae_mlp(x_train_normal, y, classes_names)
+    mlp, y_n1 = deeplearning_sae_mlp(x_train_normal_s, y, classes_names)
+    #No feature selection: Only MLP
+    mlp_solo, y_standalone1 = ids_mlp(x_train_normal, y, classes_names)
 
     #Second deep learning architecture: SAE (feature selection) and SAE-softmax (classifier)
-    y_n2 = deeplearning_sae_sae(x_train_normal)
+    y_n2 = deeplearning_sae_sae(x_train_normal_s)
 
     #Validation
     print("\nSAE and MLP Validation")
-    analysis_functions.validation(mlp.classifier, x_train_normal, y_n1, y, classes_names)
+    analysis_functions.validation(mlp.classifier, x_train_normal_s, y_n1, y, classes_names)
+    print("\nMLP only Validation")
+    analysis_functions.validation(mlp_solo.classifier, x_train_normal, y_standalone1, y, classes_names)
     print("\nSAE and SAE-softmax Validation")
-    analysis_functions.validation(None, x_train_normal, y_n1, y, classes_names)
+    analysis_functions.validation(None, x_train_normal_s, y_n1, y, classes_names)
 
    
 

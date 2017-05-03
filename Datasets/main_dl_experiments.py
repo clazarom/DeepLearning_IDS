@@ -77,7 +77,7 @@ def execute_sparseAutoencoder(rho, lamda, beta, max_iterations, visible_size, hi
     # Return input dataset computed with autoencoder
     return encoder.compute_dataset(train_data, opt_W1, opt_W2, opt_b1, opt_b2)
 
-def execute_MLP(train_data, hidden_layers, y, classes_names):
+def execute_MLP(train_data, hidden_layers, y):
     """ Trains the MLP with the train_data and returns train_data after the network """
     # Train
     mlp = MLP_general(hidden_layers)    
@@ -100,15 +100,15 @@ def execute_MLP(train_data, hidden_layers, y, classes_names):
 
 ########### IDS with DEEPLEARNING #############################
 
-def ids_mlp(train_data, y, classes_names):
+def ids_mlp(train_data, y):
         
     ######## MULTILAYER PERCEPTRONS
     h_layers = [64]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
-    mlp, y_predicted = execute_MLP(train_data, hidden_layers = h_layers,y =  y, classes_names = classes_names)
+    mlp, y_predicted = execute_MLP(train_data, hidden_layers = h_layers,y =  y)
     print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
 
     return mlp, y_predicted
-def deeplearning_sae_mlp(train_data, y, classes_names):
+def deeplearning_sae_mlp(train_data, y):
 
     ######## SPARSE AUTOENCODER TRAINING
     """ Define the parameters of the Autoencoder """
@@ -124,7 +124,7 @@ def deeplearning_sae_mlp(train_data, y, classes_names):
         
     ######## MULTILAYER PERCEPTRONS
     h_layers = [64]          # hidden layers, defined by their sizes {i.e 2 layers with 30 and 20 sizes [30, 20]}
-    mlp, y_predicted = execute_MLP(featured_x, hidden_layers = h_layers,y =  y, classes_names = classes_names)
+    mlp, y_predicted = execute_MLP(featured_x, hidden_layers = h_layers,y =  y)
 
     print(str(y_predicted[1]) +" vs real: "+ str(y[1]))
 
@@ -175,10 +175,11 @@ def main():
     print(softmax(sparse_normalize_dataset(x2)))
     # LOAD KDD dataset 
     pre_data = np.transpose(kdd.simple_preprocessing_KDD())
-    x_train, y, classes_names =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
+    x_train, y, classes_names, classes_values =  kdd.separate_classes(pre_data, kdd._ATTACK_INDEX_KDD)
     x_train_normal_s = sparse_normalize_dataset(x_train)
     x_train_normal = normalize_dataset(x_train)
 
+    #Data load and preprocessing plot results
     print("Data preprocessing results:" )
     print("indata "+str(pre_data.shape[1]))
     print("classfied "+str(x_train.shape[1]))
@@ -186,6 +187,9 @@ def main():
     print ("Output classes: ")
     for c in classes_names:
         print (c)
+    #Debug - plot all attacks kdd.plot_various()
+    kdd.plot_percentages(classes_values, classes_names, y)
+    
 
 
     """move = []
@@ -196,9 +200,9 @@ def main():
     print (str(move_mat.shape[1]))"""
     
     #First deep learning architecture: SAE (feature selection) and MLP (classifier)
-    mlp, y_n1 = deeplearning_sae_mlp(x_train_normal_s, y, classes_names)
+    mlp, y_n1 = deeplearning_sae_mlp(x_train_normal_s, y)
     #No feature selection: Only MLP
-    mlp_solo, y_standalone1 = ids_mlp(x_train_normal, y, classes_names)
+    mlp_solo, y_standalone1 = ids_mlp(x_train_normal, y)
 
     #Second deep learning architecture: SAE (feature selection) and SAE-softmax (classifier)
     y_n2 = deeplearning_sae_sae(x_train_normal_s)

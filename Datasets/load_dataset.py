@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from sklearn.preprocessing import OneHotEncoder
+import operator
+
 
 #Maps for some categorical variables
 attacks_map  = {} #attacks_map = {attack_name: attack_index, ...}
@@ -260,37 +262,14 @@ def plot_attacks (a_index, dataset= 'None',  attacks_data = 'None'):
          attacks_percents = get_attacks_percent(a_index=a_index, a_data=attacks_data)
         
 
-    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
     #labels = attacks_percents.keys()
     keys = attacks_percents.keys()
     values = attacks_percents.values()
     print (sum(values))
     #explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
-
-    #PLOT PIE CHART
     y = [float(v) for v in values]
-    N = len(y)
-    x = range(N)
-    x_names = list(keys)
-    matplotlib.rc('xtick', labelsize=5) 
-    width = 1/1.5
+    plot_percentages(y, list(keys))
 
-    fig1, ax1 = plt.subplots()
-    #labels=keys,
-    ax1.pie(y,  autopct='%1.1f%%',
-            shadow=True, startangle=90)
-    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    plt.show()
-
-    #PLOT BAR DIAGRAM
-    plt.xticks(x, x_names)
-    plt.bar(x, y, width, color="blue", alpha=0.5)
-    #plt.bar(y_pos, performance, align='center', alpha=0.5)
-    #plt.xticks(y_pos, objects)
-    plt.ylabel('%')
-    plt.title('KDD 10% of dataset')
-    fig = plt.gcf()
-    plt.show()
 
 
 def separate_classes(train_data, key_index):
@@ -300,12 +279,22 @@ def separate_classes(train_data, key_index):
     #y = np.zeros((1, train_data.shape[1]))
     y = np.transpose(train_data[key_index, :])
     x = np.delete(train_data, key_index, 0)
+    #ALL ATTACKS
     #classes_names = attacks_map.keys()
-    classes_names = _attack_classes_num.keys()
+    
+    #ATTACK CLASSES
+    sorted_attacks = sorted(_attack_classes_num.items(), key=operator.itemgetter(1))
+    #classes_names = _attack_classes_num.keys()
+    #classes_values =   _attack_classes_num.values()
+    classes_values=[]
+    classes_names= []
+    for c, v in sorted_attacks:
+        classes_names.append(c)
+        classes_values.append(v)
     #Transpose to iterate row by row
     #for value in np.transpose(train_data):
         #y  = np.concatenate([y, [value[int(key_index)]]], axis=0)
-    return x, y, classes_names
+    return x, y, classes_names, classes_values
 
 def plot_various():
     load_variables(SYS_VARS.KDDCup_path_names)
@@ -314,6 +303,47 @@ def plot_various():
     data =  categorical_labels_conversion (SYS_VARS.KDDCup_path_train_10 , attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result, False)
     plot_attacks( attacks_data = data, a_index = _ATTACK_INDEX_KDD)
     #plot_attacks( dataset = SYS_VARS.KDDCup_path_train_10, a_index = _ATTACK_INDEX_KDD)
+
+def plot_percentages(outputs, o_names, list_values=None):
+    #Plotting parameters
+    N = len(outputs)
+    x = range(N)
+    matplotlib.rc('xtick', labelsize=5) 
+    width = 1/1.5
+    
+    plotting = [0]*N
+    if (list_values != None):
+        #Compute the percentages of the list
+        total = 0
+        for v in list_values:
+            total += 1
+            plotting[int(v)] += 1
+        plotting =[ 100*i/total for i in plotting]
+    else:
+        print('percentages in inputs')
+        plotting = outputs
+
+
+    #PLOT PIE CHART
+    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+    fig1, ax1 = plt.subplots()
+    #labels=keys,
+    ax1.pie(plotting,  autopct='%1.1f%%',
+            shadow=True, startangle=90)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.show()
+
+    #PLOT BAR DIAGRAM
+    plt.xticks(x, o_names)
+    plt.bar(x, plotting, width, color="blue", alpha=0.5)
+    #plt.bar(y_pos, performance, align='center', alpha=0.5)
+    #plt.xticks(y_pos, objects)
+    plt.ylabel('%')
+    plt.title('KDD 10% of dataset')
+    fig = plt.gcf()
+    plt.show()
+
+
 
 
 

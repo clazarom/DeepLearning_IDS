@@ -60,7 +60,6 @@ class SparseAutoencoder(object):
         self.opt_b2 = numpy.zeros((visible_size, 1))
 
         """ Create 'theta' by unrolling W1, W2, b1, b2 """
-
         self.theta = numpy.concatenate((W1.flatten(), W2.flatten(),
                                         b1.flatten(), b2.flatten()))
 
@@ -164,7 +163,10 @@ class SparseAutoencoder(object):
     def compute_function(self, input):
         hidden_layer = self.sigmoid(numpy.add(numpy.dot(self.opt_W1, input.reshape(input.shape[0], -1)),self.opt_b1))
         output_layer = self.sigmoid(numpy.add(numpy.dot(self.opt_W2, hidden_layer),self.opt_b2))
-        return output_layer.flatten()
+        #return output_layer.flatten()
+        return [x for x in output_layer]
+        #return reshape(output_layer.shape[0], -1)
+
     
     def compute_dataset(self, input, W1, W2, b1, b2):
         """y = []
@@ -173,7 +175,13 @@ class SparseAutoencoder(object):
         y_mat= numpy.transpose(numpy.array(y))
         return y_mat"""
         self.set_inner_weightsBiases(W1, W2, b1, b2)
-        return numpy.apply_along_axis(self.compute_function, axis=0, arr=input)
+        output = []
+        output = numpy.apply_along_axis(self.compute_function, axis=0, arr=input) #apply compute_function for each sample
+        #for index in range(input.shape[1]):
+            #output.append(self.compute_layer(input[:,index], W1, W2, b1, b2))
+        #output= numpy.transpose(numpy.array(output))
+
+        return output
 
     ############################################################################################
     def train(self, training_data, max_iterations, algorithm = 'L-BFGS-B'):

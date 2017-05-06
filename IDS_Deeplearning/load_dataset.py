@@ -26,10 +26,19 @@ _attack_classes ={'ipsweep.': 'probe', 'loadmodule.': 'u2r', 'warezclient.': 'r2
                   'smurf.': 'dos', 'imap.': 'r2l', 'multihop.': 'r2l', 'rootkit.': 'u2r', 'satan.': 'probe', 'nmap.': 'probe', 
                   'back.': 'dos', 'ftp_write.': 'r2l', 'neptune.': 'dos', 'teardrop.': 'dos', 'perl.': 'u2r', 'guess_passwd.': 'r2l', 
                   'pod.': 'dos', 'normal.': 'normal', 'buffer_overflow.': 'u2r', 'warezmaster.': 'r2l', 'spy.': 'r2l', 'land.': 'dos'}
+#List of attacks in NSL - http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.413.589&rep=rep1&type=pdf
+_attack_classes_NSL ={'ipsweep': 'probe', 'loadmodule': 'u2r', 'warezclient': 'r2l', 'phf': 'r2l', 'portsweep': 'probe', 
+                  'smurf': 'dos', 'imap': 'r2l', 'multihop': 'r2l', 'rootkit': 'u2r', 'satan': 'probe', 'nmap': 'probe', 
+                  'back': 'dos', 'ftp_write': 'r2l', 'neptune': 'dos', 'teardrop': 'dos', 'perl': 'u2r', 'guess_passwd': 'r2l', 
+                  'pod': 'dos', 'normal': 'normal', 'buffer_overflow': 'u2r', 'warezmaster': 'r2l', 'spy': 'r2l', 'land': 'dos', 
+                  'snmpguess':'r2l', 'processtable': 'dos', 'saint':'probe', 'mscan':'probe', 'apache2':'dos', 'httptunnel':'r2l',
+                  'mailbomb':'dos', 'snmpgetattack':'r2l', 'worm':'dos', 'sendmail':'r2l', 'xlock':'r2l', 'xterm':'u2r', 'xsnoop':'r2l',
+                  'ps':'u2r', 'named':'r2l', 'udpstorm':'dos', 'sqlattack':'u2r'}
 _attack_classes_num = {'probe':1, 'dos':2, 'r2l':3, 'u2r':4, 'normal':0}
 
 
 def load_variables (var_names):
+    """ Load given dataset file, var_names, and generate attack_map & feature_names """
     csvFileArray = []
     
     with open(var_names, 'r') as file:
@@ -72,7 +81,7 @@ def read_file(file_name, file_directory):
 
 ##################### DATA PREPROCESSING #####################
 
-def categorical_labels_conversion (dataset, symbols_map, variable_index, new_file, result_directory, processed_file):
+def categorical_labels_conversion (dataset, symbols_map, variable_index, classes, new_file, result_directory, processed_file):
     """Convert the given categorigal variables  to numerical variables, and save then in new_file, living in result_directory
     When we know the mapping of catogry to number
     """
@@ -95,7 +104,7 @@ def categorical_labels_conversion (dataset, symbols_map, variable_index, new_fil
             for row in reader:
                 i = row
                 #i [variable_index]= symbols_map[row[variable_index]]
-                i [variable_index]= _attack_classes_num[_attack_classes[row[variable_index]]]
+                i [variable_index]= _attack_classes_num[classes[row[variable_index]]]
                 data.append(i)
 
     """ Read from process data
@@ -155,6 +164,9 @@ def categorical_features_conversion (dataset, variable_indexes, new_file, result
    
 
 def categorical_features_onehot (dataset, variable_indexes, new_file, result_directory, processed_file):
+    """Convert the categorical feature to numerical using onehot bit encoding and save then in new_file, living in result_directory
+    _PROTOCOL_INDEX = 1 / _SERVICE_INDEX = 2 / _FLAG_INDEX = 3"""
+
     #Convert to numerical
     d_numerical = categorical_features_conversion (dataset, variable_indexes, new_file, result_directory, processed_file)
 
@@ -170,7 +182,9 @@ def categorical_features_onehot (dataset, variable_indexes, new_file, result_dir
 
 
 
-def simple_preprocessing_KDD():
+def simple_preprocessing_KDD(attack_index):
+    """Load and convert train and test datasets """
+
     load_variables(SYS_VARS.KDDCup_path_names)
     """ TRY write and read
     write_file([[1, 2, 3],[4, 5, 6]], "trial.npy", SYS_VARS.KDDCup_path_result)
@@ -185,20 +199,47 @@ def simple_preprocessing_KDD():
 
 
     """Convert ATTACKS symbol to integer
-    symbolic_known_variable_conversion (SYS_VARS.KDDCup_path_train_10, attacks_map, _ATTACK_INDEX_KDD, 'KDD_train_attack_10.npy', SYS_VARS.KDDCup_path_result)"""
+    symbolic_known_variable_conversion (SYS_VARS.KDDCup_path_train_10, attacks_map, _ATTACK_INDEX_KDD, _attack_classes, 'KDD_train_attack_10.npy', SYS_VARS.KDDCup_path_result)"""
 
-    """Convert ALL symbols to integers"""
-    saved_preprocess = "KDD_train_num_10.npy"
-    #TODO Generate the preprocessed samples
-    categorical_labels_conversion (SYS_VARS.KDDCup_path_train_10 , attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result, False)
-    categorical_features_onehot (saved_preprocess, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.KDDCup_path_result, True)
-    return read_file(saved_preprocess, SYS_VARS.KDDCup_path_result).astype(np.float)
+    t_data = []
+    test_data = []
+    if (attack_index == _ATTACK_INDEX_KDD):
+        """KDD Convert ALL symbols to integers"""
+        #1. TRAIN DATA
+        saved_preprocess = "KDD_train_num_10.npy"
+        # Generate the preprocessed samples
+        categorical_labels_conversion (SYS_VARS.KDDCup_path_train_10 , attacks_map, _ATTACK_INDEX_KDD, _attack_classes, saved_preprocess, SYS_VARS.KDDCup_path_result, False)
+        categorical_features_onehot (saved_preprocess, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.KDDCup_path_result, True)
+        t_data = read_file(saved_preprocess, SYS_VARS.KDDCup_path_result).astype(np.float)
+        #2. TEST DATA
+        saved_preprocess = "KDD_test_num_10.npy"
+        # Generate the preprocessed samples
+        categorical_features_onehot (SYS_VARS.KDDCup_path_test_10 , [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.KDDCup_path_result, False)
+        test_data = read_file(saved_preprocess, SYS_VARS.KDDCup_path_result).astype(np.float)
+        
+    elif (attack_index == _ATTACK_INDEX_NSLKDD):
+        """NSL-KDD Convert ALL symbols to integers"""
+        #1. TRAIN DATA
+        saved_preprocess = "NSL_train_num_10.npy"
+        # Generate the preprocessed samples
+        categorical_labels_conversion (SYS_VARS.NSLKDD_path_train20 , attacks_map, _ATTACK_INDEX_NSLKDD, _attack_classes_NSL, saved_preprocess, SYS_VARS.NSL_path_result, False)
+        categorical_features_onehot (saved_preprocess, [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.NSL_path_result, True)
+        t_data = read_file(saved_preprocess, SYS_VARS.NSL_path_result).astype(np.float)
+        #2. TEST DATA
+        saved_preprocess = "NSL_test_num_10.npy"
+        # Generate the preprocessed samples
+        categorical_labels_conversion (SYS_VARS.NSLKDD_path_test20 , attacks_map, _ATTACK_INDEX_NSLKDD, _attack_classes_NSL, saved_preprocess, SYS_VARS.NSL_path_result, False)
+        categorical_features_onehot (saved_preprocess , [_PROTOCOL_INDEX, _SERVICE_INDEX, _FLAG_INDEX], saved_preprocess, SYS_VARS.NSL_path_result, True)
+        test_data = read_file(saved_preprocess, SYS_VARS.NSL_path_result).astype(np.float)
+
+    return t_data, test_data
     
 
                 
 
 ##################### ATTACKS ################################
 def select_attack(attack_name, dataset, a_index, other):
+    """Get one attack by its name"""
     print ('\n Find '+attack_name)
     csvFileArray = []
 
@@ -212,7 +253,8 @@ def select_attack(attack_name, dataset, a_index, other):
                 other.append(row)
     return csvFileArray
     
-def get_attacks_percent (a_data, a_index, dataset='None'):
+def get_attacks_percent (a_data, a_index, dataset= None):
+    """ Return the % for each attack in a_index of the dataset """
     percents = {}
     attacks = {}
     #for a, index in attacks_map.items():
@@ -221,7 +263,7 @@ def get_attacks_percent (a_data, a_index, dataset='None'):
         percents[a] = 0
     total = 0
 
-    if (dataset=='None'):
+    if dataset is None:
         print('Dont open file here')
         for row in np.transpose(a_data)[a_index]:
             total += 1
@@ -247,9 +289,9 @@ def get_attacks_percent (a_data, a_index, dataset='None'):
     return percents
                 
 
-def plot_attacks (a_index, dataset= 'None',  attacks_data = 'None'):
-
-    if (attacks_data == 'None'):
+def plot_attacks (a_index, dataset= None,  attacks_data = None):
+    """ Plot the % for each attack in a_index of the dataset """
+    if attacks_data is None:
         attacks_percents = get_attacks_percent(a_index=a_index, dataset=dataset)
         
         #other = []
@@ -268,7 +310,7 @@ def plot_attacks (a_index, dataset= 'None',  attacks_data = 'None'):
     print (sum(values))
     #explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
     y = [float(v) for v in values]
-    plot_percentages(y, list(keys))
+    plot_percentages(y, list(keys), 'ATTACKS')
 
 
 
@@ -297,14 +339,16 @@ def separate_classes(train_data, key_index):
     return x, y, classes_names, classes_values
 
 def plot_various():
+    """Plot the attacks of train 10% dataset """
     load_variables(SYS_VARS.KDDCup_path_names)
     saved_preprocess = "KDD_train_num_10.npy"
-    #plot_attacks (dataset= 'None',  attacks_percents = 'None', a_index)
     data =  categorical_labels_conversion (SYS_VARS.KDDCup_path_train_10 , attacks_map, _ATTACK_INDEX_KDD, saved_preprocess, SYS_VARS.KDDCup_path_result, False)
     plot_attacks( attacks_data = data, a_index = _ATTACK_INDEX_KDD)
     #plot_attacks( dataset = SYS_VARS.KDDCup_path_train_10, a_index = _ATTACK_INDEX_KDD)
 
-def plot_percentages(outputs, o_names, list_values=None):
+def plot_percentages(outputs, o_names, title, list_values= None):
+    """Compute the % for each variable in the list and plot as: 
+        Pie chart & Bar graph """
     #Plotting parameters
     N = len(outputs)
     x = range(N)
@@ -312,17 +356,18 @@ def plot_percentages(outputs, o_names, list_values=None):
     width = 1/1.5
     
     plotting = [0]*N
-    if (list_values != None):
+    if list_values is None:
+        print('percentages in inputs')
+        plotting = outputs
+       
+    else:
         #Compute the percentages of the list
         total = 0
         for v in list_values:
             total += 1
             plotting[int(v)] += 1
         plotting =[ 100*i/total for i in plotting]
-    else:
-        print('percentages in inputs')
-        plotting = outputs
-
+        
 
     #PLOT PIE CHART
     # Pie chart, where the slices will be ordered and plotted counter-clockwise:
@@ -331,6 +376,7 @@ def plot_percentages(outputs, o_names, list_values=None):
     ax1.pie(plotting,  autopct='%1.1f%%',
             shadow=True, startangle=90)
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.title('KDD 10% - '+title)
     plt.show()
 
     #PLOT BAR DIAGRAM
@@ -339,7 +385,7 @@ def plot_percentages(outputs, o_names, list_values=None):
     #plt.bar(y_pos, performance, align='center', alpha=0.5)
     #plt.xticks(y_pos, objects)
     plt.ylabel('%')
-    plt.title('KDD 10% of dataset')
+    plt.title('KDD 10% - '+title)
     fig = plt.gcf()
     plt.show()
 

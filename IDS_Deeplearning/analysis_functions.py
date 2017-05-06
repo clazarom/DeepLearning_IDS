@@ -43,9 +43,10 @@ def plot_confusion_matrix(cm, classes,
     plt.xlabel('Predicted label')
 
 
-def validation(classifier, data, y_data, y_target, class_names):
+def validation(classifier, data, y_data, y_target, class_names, title):
     #kfold = KFold(n_splits=10, shuffle=True, random_state=seed)
     #cv = kfold
+    t = 'Confusion matrix: '+str(title)
     x =  np.transpose(data)
     if (classifier == None):
         print ("No accuracy to be computed")
@@ -57,12 +58,12 @@ def validation(classifier, data, y_data, y_target, class_names):
     #recall = model_selection.cross_val_score(self.classifier, x, target, scoring='recall')
     precision, recall, fscore, m = precision_recall_fscore_support(y_target, y_data, average='macro')
     cnf_matrix = confusion_matrix(y_target, y_data)
-    print("Precission: " +str(precision) +", Recall:" +str(recall))
+    print("Precision: " +str(precision) +", Recall:" +str(recall))
 
     np.set_printoptions(precision=2)
     # Plot non-normalized confusion matrix
     plt.figure()
-    plot_confusion_matrix(cnf_matrix, classes=class_names, title='Confusion matrix')
+    plot_confusion_matrix(cnf_matrix, classes=class_names, title=t)
     print ("... finishing matrix plot")
     plt.show()
 

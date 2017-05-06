@@ -51,14 +51,14 @@ def validation(classifier, data, y_data, y_target, class_names, title):
     if (classifier == None):
         print ("No accuracy to be computed")
     else:
-        #accuracy = model_selection.cross_val_score(classifier, x, y_target, scoring='accuracy')
-        print("Accuracy: ")
+        accuracy = model_selection.cross_val_score(classifier, x, y_target, scoring='accuracy')
+        print("Accuracy: "+ str(accuracy))
     #precision = model_selection.cross_val_score(self.classifier, x, target, scoring='precision')
     #precision_score(y_true, y_pred, average='macro')  
     #recall = model_selection.cross_val_score(self.classifier, x, target, scoring='recall')
     precision, recall, fscore, m = precision_recall_fscore_support(y_target, y_data, average='macro')
     cnf_matrix = confusion_matrix(y_target, y_data)
-    print("Precision: " +str(precision) +", Recall:" +str(recall))
+    print("Precision: " +str(precision) +", Recall:" +str(recall) + ", f-score:" +str(fscore))
 
     np.set_printoptions(precision=2)
     # Plot non-normalized confusion matrix

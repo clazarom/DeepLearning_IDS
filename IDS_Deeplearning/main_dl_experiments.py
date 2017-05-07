@@ -252,14 +252,14 @@ def main():
     #Validation
     print("\nSAE and MLP Validation "+str(y_n1.shape))
     analysis_functions.validation(mlp.classifier, x_train_normal_s, y_n1, y, classes_names, ' KDD SAE-MLP(train)')
-    analysis_functions.validation(mlp.classifier, x_test_normal_s, y_n1_test, y_test, classes_names, ' KDD SAE-MLP(test)')
+    #NSL-KDD only analysis_functions.validation(mlp.classifier, x_test_normal_s, y_n1_test, y_test, classes_names, ' KDD SAE-MLP(test)')
     print("\nMLP only Validation "+str(y_standalone1.shape))
     analysis_functions.validation(mlp_solo.classifier, x_train_normal, y_standalone1, y, classes_names, ' KDD MLP(train)')
-    analysis_functions.validation(mlp_solo.classifier, x_test_normal, y_standalone1_test, y_test, classes_names, ' KDD MLP(test)')
+    #NSL-KDD only analysis_functions.validation(mlp_solo.classifier, x_test_normal, y_standalone1_test, y_test, classes_names, ' KDD MLP(test)')
 
     print("\nSAE and SAE-softmax Validation" +str(y_n2.shape))
     analysis_functions.validation(sm_classifier, x_train_normal_s, y_n2, y, classes_names, ' KDD SAE-SAE(train)')
-    analysis_functions.validation(sm_classifier, x_test_normal_s, y_n2_test, y_test, classes_names, ' NSLKDD SAE-SAE(test)')
+    #NSL-KDD only analysis_functions.validation(sm_classifier, x_test_normal_s, y_n2_test, y_test, classes_names, ' NSLKDD SAE-SAE(test)')
 
 
    
